@@ -75,7 +75,8 @@ public class ConditionsTaskTest {
         Mockito.when(applicationContext.getBean(ProcessService.class)).thenReturn(processService);
 
         processInstance = getProcessInstance();
-        Mockito.when(processService.findProcessInstanceById(processInstance.getId()))
+        Mockito.when(processService
+                .findProcessInstanceById(processInstance.getId()))
                 .thenReturn(processInstance);
     }
 
