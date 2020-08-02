@@ -391,7 +391,12 @@ public final class Constants {
     public static final int RPC_PORT = 50051;
 
     /**
-     * forbid running task
+     * task can be run normally
+     */
+    public static final String FLOWNODE_RUN_FLAG_NORMAL = "NORMAL";
+
+    /**
+     * task forbidden to run
      */
     public static final String FLOWNODE_RUN_FLAG_FORBIDDEN = "FORBIDDEN";
 
