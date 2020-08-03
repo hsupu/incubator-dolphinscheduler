@@ -17,7 +17,6 @@
 package org.apache.dolphinscheduler.server.master;
 
 
-import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.DependentRelation;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.enums.TaskType;
@@ -51,6 +50,11 @@ import java.util.stream.Stream;
 public class ConditionsTaskTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DependentTaskTest.class);
+
+    /**
+     * TaskNode.runFlag : task can be run normally
+     */
+    public static final String FLOWNODE_RUN_FLAG_NORMAL = "NORMAL";
 
     private ApplicationContext applicationContext;
 
@@ -129,7 +133,7 @@ public class ConditionsTaskTest {
         taskNode.setId("tasks-1000");
         taskNode.setName("C");
         taskNode.setType(TaskType.CONDITIONS.toString());
-        taskNode.setRunFlag(Constants.FLOWNODE_RUN_FLAG_NORMAL);
+        taskNode.setRunFlag(FLOWNODE_RUN_FLAG_NORMAL);
 
         DependentItem dependentItem = new DependentItem();
         dependentItem.setDepTasks("1");
