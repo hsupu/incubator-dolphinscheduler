@@ -47,6 +47,9 @@ public class TaskInstanceTest {
         Assert.assertTrue(taskInstance.isDependTask());
     }
 
+    /**
+     * test for TaskInstance.getDependence
+     */
     @Test
     public void testTaskInstanceGetDependence() {
         TaskInstance taskInstance;
@@ -71,7 +74,7 @@ public class TaskInstanceTest {
 
         taskInstance = new TaskInstance();
         taskInstance.setTaskJson(null);
-        taskInstance.setDependency("\"TEMP\"");
-        Assert.assertEquals("\"TEMP\"", taskInstance.getDependency());
+        taskInstance.setDependency("{}");
+        Assert.assertEquals("{}", taskInstance.getDependency());
     }
 }
