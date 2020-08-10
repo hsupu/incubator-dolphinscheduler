@@ -17,6 +17,9 @@
 package org.apache.dolphinscheduler.server.master;
 
 
+import java.util.*;
+import java.util.stream.*;
+
 import org.apache.dolphinscheduler.common.enums.DependentRelation;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.enums.TaskType;
@@ -42,10 +45,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class ConditionsTaskTest {
 
@@ -56,21 +55,17 @@ public class ConditionsTaskTest {
      */
     public static final String FLOWNODE_RUN_FLAG_NORMAL = "NORMAL";
 
-    private ApplicationContext applicationContext;
-
-    private MasterConfig config;
-
     private ProcessService processService;
 
     private ProcessInstance processInstance;
 
     @Before
     public void before() {
-        applicationContext = Mockito.mock(ApplicationContext.class);
+        ApplicationContext applicationContext = Mockito.mock(ApplicationContext.class);
         SpringApplicationContext springApplicationContext = new SpringApplicationContext();
         springApplicationContext.setApplicationContext(applicationContext);
 
-        config = new MasterConfig();
+        MasterConfig config = new MasterConfig();
         Mockito.when(applicationContext.getBean(MasterConfig.class)).thenReturn(config);
         config.setMasterTaskCommitRetryTimes(3);
         config.setMasterTaskCommitInterval(1000);
@@ -105,27 +100,35 @@ public class ConditionsTaskTest {
                 .updateTaskInstance(taskInstance))
                 .thenReturn(true);
 
-        List<TaskInstance> pres1 = Stream.of(
-                getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.SUCCESS)
-        ).collect(Collectors.toList());
+        // case 1
+        {
+            // for ConditionsTaskExecThread.waitTaskQuit
+            List<TaskInstance> conditions = Stream.of(
+                    getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.SUCCESS)
+            ).collect(Collectors.toList());
+            Mockito.when(processService
+                    .findValidTaskListByProcessId(processInstance.getId()))
+                    .thenReturn(conditions);
 
-        List<TaskInstance> pres2 = Stream.of(
-                getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.FAILURE)
-        ).collect(Collectors.toList());
+            ConditionsTaskExecThread taskExecThread = new ConditionsTaskExecThread(taskInstance);
+            taskExecThread.call();
+            Assert.assertEquals(ExecutionStatus.SUCCESS, taskExecThread.getTaskInstance().getState());
+        }
 
-        // for ConditionsTaskExecThread.waitTaskQuit
-        //noinspection unchecked
-        Mockito.when(processService
-                .findValidTaskListByProcessId(processInstance.getId()))
-                .thenReturn(pres1, pres2);
+        // case 2
+        {
+            // for ConditionsTaskExecThread.waitTaskQuit
+            List<TaskInstance> conditions = Stream.of(
+                    getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.FAILURE)
+            ).collect(Collectors.toList());
+            Mockito.when(processService
+                    .findValidTaskListByProcessId(processInstance.getId()))
+                    .thenReturn(conditions);
 
-        ConditionsTaskExecThread conditions = new ConditionsTaskExecThread(taskInstance);
-        conditions.call();
-        Assert.assertEquals(ExecutionStatus.SUCCESS, conditions.getTaskInstance().getState());
-
-        conditions = new ConditionsTaskExecThread(taskInstance);
-        conditions.call();
-        Assert.assertEquals(ExecutionStatus.FAILURE, conditions.getTaskInstance().getState());
+            ConditionsTaskExecThread taskExecThread = new ConditionsTaskExecThread(taskInstance);
+            taskExecThread.call();
+            Assert.assertEquals(ExecutionStatus.FAILURE, taskExecThread.getTaskInstance().getState());
+        }
     }
 
     private TaskNode getTaskNode() {
