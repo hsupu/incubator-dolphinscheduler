@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class ConditionsTaskTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DependentTaskTest.class);
