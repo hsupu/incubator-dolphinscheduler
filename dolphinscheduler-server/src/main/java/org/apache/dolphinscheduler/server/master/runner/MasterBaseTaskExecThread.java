@@ -19,6 +19,7 @@ package org.apache.dolphinscheduler.server.master.runner;
 import static org.apache.dolphinscheduler.common.Constants.UNDERLINE;
 
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
+import org.apache.dolphinscheduler.common.model.TaskNode;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.dao.AlertDao;
 import org.apache.dolphinscheduler.dao.entity.ProcessInstance;
@@ -80,6 +81,11 @@ public class MasterBaseTaskExecThread implements Callable<Boolean> {
     protected boolean cancel;
 
     /**
+     * whether as fake-run task
+     */
+    protected boolean fakeRun;
+
+    /**
      * master config
      */
     protected MasterConfig masterConfig;
@@ -99,6 +105,9 @@ public class MasterBaseTaskExecThread implements Callable<Boolean> {
         this.taskInstance = taskInstance;
         this.masterConfig = SpringApplicationContext.getBean(MasterConfig.class);
         this.taskUpdateQueue = SpringApplicationContext.getBean(TaskPriorityQueueImpl.class);
+
+        TaskNode taskNode = JSONUtils.parseObject(taskInstance.getTaskJson(), TaskNode.class);
+        this.fakeRun = taskNode != null && taskNode.isFakeRun();
     }
 
     /**

@@ -55,6 +55,7 @@
               <x-radio-group v-model="runFlag" >
                 <x-radio :label="'NORMAL'" :disabled="isDetails">{{$t('Normal')}}</x-radio>
                 <x-radio :label="'FORBIDDEN'" :disabled="isDetails">{{$t('Prohibition execution')}}</x-radio>
+                <x-radio :label="'FAKERUN'" :disabled="isDetails">{{$t('Fake Run')}}</x-radio>
               </x-radio-group>
             </label>
           </div>
@@ -612,7 +613,7 @@
           fromThis: this
         })
       }
-    }, 
+    },
     watch: {
       /**
        * Watch the item change, cache the value it changes

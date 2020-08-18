@@ -56,20 +56,7 @@ public class SubProcessTaskExecThread extends MasterBaseTaskExecThread {
             }
             setTaskInstanceState();
             waitTaskQuit();
-            subProcessInstance = processService.findSubProcessInstance(processInstance.getId(), taskInstance.getId());
-
-            // at the end of the subflow , the task state is changed to the subflow state
-            if(subProcessInstance != null){
-                if(subProcessInstance.getState() == ExecutionStatus.STOP){
-                    this.taskInstance.setState(ExecutionStatus.KILL);
-                }else{
-                    this.taskInstance.setState(subProcessInstance.getState());
-                }
-            }
-            taskInstance.setEndTime(new Date());
-            processService.updateTaskInstance(taskInstance);
-            logger.info("subflow task :{} id:{}, process id:{}, exec thread completed ",
-                    this.taskInstance.getName(),taskInstance.getId(), processInstance.getId() );
+            updateTaskInstanceState();
             result = true;
 
         }catch (Exception e){
@@ -88,14 +75,21 @@ public class SubProcessTaskExecThread extends MasterBaseTaskExecThread {
      * @return
      */
     private boolean setTaskInstanceState(){
-        subProcessInstance = processService.findSubProcessInstance(processInstance.getId(), taskInstance.getId());
-        if(subProcessInstance == null || taskInstance.getState().typeIsFinished()){
+        if (taskInstance.getState().typeIsFinished()) {
             return false;
         }
 
         taskInstance.setState(ExecutionStatus.RUNNING_EXECUTION);
         taskInstance.setStartTime(new Date());
         processService.updateTaskInstance(taskInstance);
+
+        if (!this.fakeRun) {
+            subProcessInstance = processService.findSubProcessInstance(processInstance.getId(), taskInstance.getId());
+            if (subProcessInstance == null) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -117,8 +111,13 @@ public class SubProcessTaskExecThread extends MasterBaseTaskExecThread {
      * @throws InterruptedException
      */
     private void waitTaskQuit() throws InterruptedException {
-
         logger.info("wait sub work flow: {} complete", this.taskInstance.getName());
+
+        if (this.fakeRun) {
+            logger.info("subflow task :{} id:{}, process id:{}, as fake-run",
+                    this.taskInstance.getName(), taskInstance.getId(), processInstance.getId());
+            return;
+        }
 
         if (taskInstance.getState().typeIsFinished()) {
             logger.info("sub work flow task {} already complete. task state:{}, parent work flow instance state:{}",
@@ -152,6 +151,29 @@ public class SubProcessTaskExecThread extends MasterBaseTaskExecThread {
             }
             Thread.sleep(Constants.SLEEP_TIME_MILLIS);
         }
+    }
+
+    /**
+     * update task instance state
+     */
+    private void updateTaskInstanceState() {
+        if (fakeRun) {
+            taskInstance.setState(ExecutionStatus.SUCCESS);
+        } else {
+            subProcessInstance = processService.findSubProcessInstance(processInstance.getId(), taskInstance.getId());
+            // at the end of the subflow , the task state is changed to the subflow state
+            if (subProcessInstance != null) {
+                if (subProcessInstance.getState() == ExecutionStatus.STOP) {
+                    taskInstance.setState(ExecutionStatus.KILL);
+                } else {
+                    taskInstance.setState(subProcessInstance.getState());
+                }
+            }
+        }
+        taskInstance.setEndTime(new Date());
+        processService.updateTaskInstance(taskInstance);
+        logger.info("subflow task :{} id:{}, process id:{}, exec thread completed ",
+                this.taskInstance.getName(), taskInstance.getId(), processInstance.getId());
     }
 
     /**

@@ -23,7 +23,7 @@ import org.apache.dolphinscheduler.common.model.DependentItem;
 import org.apache.dolphinscheduler.common.model.DependentTaskModel;
 import org.apache.dolphinscheduler.common.task.dependent.DependentParameters;
 import org.apache.dolphinscheduler.common.utils.DependentUtils;
-import org.apache.dolphinscheduler.common.utils.*;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.LoggerUtils;
 import org.apache.dolphinscheduler.common.utils.NetUtils;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
@@ -84,6 +84,12 @@ public class ConditionsTaskExecThread extends MasterBaseTaskExecThread {
     }
 
     private void waitTaskQuit() {
+        if (fakeRun) {
+            logger.info("conditions task :{} id:{}, as fake-run",
+                    this.taskInstance.getName(), taskInstance.getId());
+            return;
+        }
+
         List<TaskInstance> taskInstances = processService.findValidTaskListByProcessId(
                 taskInstance.getProcessInstanceId()
         );
@@ -112,9 +118,11 @@ public class ConditionsTaskExecThread extends MasterBaseTaskExecThread {
      */
     private void updateTaskState() {
         ExecutionStatus status;
-        if(this.cancel){
+        if (this.cancel) {
             status = ExecutionStatus.KILL;
-        }else{
+        } else if (this.fakeRun) {
+            status = ExecutionStatus.SUCCESS;
+        } else {
             status = (conditionResult == DependResult.SUCCESS) ? ExecutionStatus.SUCCESS : ExecutionStatus.FAILURE;
         }
         taskInstance.setState(status);

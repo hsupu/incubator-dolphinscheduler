@@ -16,6 +16,7 @@
  */
 package org.apache.dolphinscheduler.server.master;
 
+import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.DependentRelation;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
 import org.apache.dolphinscheduler.common.enums.TaskType;
@@ -40,6 +41,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
@@ -78,6 +80,15 @@ public class ConditionsTaskTest {
         Mockito.when(processService
                 .findProcessInstanceById(processInstance.getId()))
                 .thenReturn(processInstance);
+
+        // for ConditionsTaskExecThread.initTaskParameters
+        Mockito.when(processService
+                .saveTaskInstance(Mockito.any()))
+                .thenReturn(true);
+        // for ConditionsTaskExecThread.updateTaskState
+        Mockito.when(processService
+                .updateTaskInstance(Mockito.any()))
+                .thenReturn(true);
     }
 
     private TaskInstance testBasicInit(ExecutionStatus expectResult) {
@@ -91,14 +102,6 @@ public class ConditionsTaskTest {
         Mockito.when(processService
                 .findTaskInstanceById(taskInstance.getId()))
                 .thenReturn(taskInstance);
-        // for ConditionsTaskExecThread.initTaskParameters
-        Mockito.when(processService
-                .saveTaskInstance(taskInstance))
-                .thenReturn(true);
-        // for ConditionsTaskExecThread.updateTaskState
-        Mockito.when(processService
-                .updateTaskInstance(taskInstance))
-                .thenReturn(true);
 
         // for ConditionsTaskExecThread.waitTaskQuit
         List<TaskInstance> conditions = Stream.of(
@@ -125,6 +128,45 @@ public class ConditionsTaskTest {
         ConditionsTaskExecThread taskExecThread = new ConditionsTaskExecThread(taskInstance);
         taskExecThread.call();
         Assert.assertEquals(ExecutionStatus.FAILURE, taskExecThread.getTaskInstance().getState());
+    }
+
+    @Test
+    public void testFakeRun() throws Exception {
+        TaskNode taskNode = getTaskNode();
+        taskNode.setRunFlag(Constants.FLOWNODE_RUN_FLAG_FAKERUN);
+        TaskInstance taskInstance = getTaskInstance(taskNode, processInstance);
+
+        // for MasterBaseTaskExecThread.submit
+        Mockito.when(processService
+                .submitTask(taskInstance))
+                .thenReturn(taskInstance);
+        // for MasterBaseTaskExecThread.call
+        Mockito.when(processService
+                .findTaskInstanceById(taskInstance.getId()))
+                .thenReturn(taskInstance);
+
+        List<TaskInstance> pres1 = Stream.of(
+                getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.SUCCESS)
+        ).collect(Collectors.toList());
+
+        List<TaskInstance> pres2 = Stream.of(
+                getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.FAILURE)
+        ).collect(Collectors.toList());
+
+        // for ConditionsTaskExecThread.waitTaskQuit
+        //noinspection unchecked
+        Mockito.when(processService
+                .findValidTaskListByProcessId(processInstance.getId()))
+                .thenReturn(pres1, pres2);
+
+        ConditionsTaskExecThread conditions;
+        conditions = new ConditionsTaskExecThread(taskInstance);
+        conditions.call();
+        Assert.assertEquals(ExecutionStatus.SUCCESS, conditions.getTaskInstance().getState());
+
+        conditions = new ConditionsTaskExecThread(taskInstance);
+        conditions.call();
+        Assert.assertEquals(ExecutionStatus.SUCCESS, conditions.getTaskInstance().getState());
     }
 
     private TaskNode getTaskNode() {

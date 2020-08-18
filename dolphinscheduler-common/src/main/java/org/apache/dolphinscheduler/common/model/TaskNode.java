@@ -22,11 +22,12 @@ import org.apache.dolphinscheduler.common.enums.TaskTimeoutStrategy;
 import org.apache.dolphinscheduler.common.enums.TaskType;
 import org.apache.dolphinscheduler.common.task.TaskTimeoutParameter;
 import org.apache.dolphinscheduler.common.utils.CollectionUtils;
-import org.apache.dolphinscheduler.common.utils.*;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.common.utils.StringUtils;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.apache.dolphinscheduler.common.utils.StringUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -226,6 +227,11 @@ public class TaskNode {
   public Boolean isForbidden(){
     return (StringUtils.isNotEmpty(this.runFlag) &&
             this.runFlag.equals(Constants.FLOWNODE_RUN_FLAG_FORBIDDEN));
+  }
+
+  public Boolean isFakeRun() {
+    return (StringUtils.isNotEmpty(this.runFlag) &&
+            this.runFlag.equals(Constants.FLOWNODE_RUN_FLAG_FAKERUN));
   }
 
   @Override

@@ -48,7 +48,7 @@ public class TaskManager {
                                      Logger logger)
       throws IllegalArgumentException {
     switch (EnumUtils.getEnum(TaskType.class,taskExecutionContext.getTaskType())) {
-        case SHELL:
+      case SHELL:
         return new ShellTask(taskExecutionContext, logger);
       case WATERDROP:
         return new ShellTask(taskExecutionContext, logger);
@@ -74,5 +74,18 @@ public class TaskManager {
         logger.error("unsupport task type: {}", taskExecutionContext.getTaskType());
         throw new IllegalArgumentException("not support task type");
     }
+  }
+
+  /**
+   * create new fake-run task
+   * @param taskExecutionContext  taskExecutionContext
+   * @param logger    logger
+   * @return AbstractTask
+   * @throws IllegalArgumentException illegal argument exception
+   */
+  public static AbstractTask newFakeRunTask(TaskExecutionContext taskExecutionContext,
+                                            Logger logger)
+  {
+    return new FakeRunTask(taskExecutionContext, logger);
   }
 }

@@ -16,7 +16,8 @@
  */
 package org.apache.dolphinscheduler.server.master.runner;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import static org.apache.dolphinscheduler.common.Constants.DEPENDENT_SPLIT;
+
 import org.apache.dolphinscheduler.common.Constants;
 import org.apache.dolphinscheduler.common.enums.DependResult;
 import org.apache.dolphinscheduler.common.enums.ExecutionStatus;
@@ -24,16 +25,20 @@ import org.apache.dolphinscheduler.common.model.DependentTaskModel;
 import org.apache.dolphinscheduler.common.task.dependent.DependentParameters;
 import org.apache.dolphinscheduler.common.thread.Stopper;
 import org.apache.dolphinscheduler.common.utils.DependentUtils;
-import org.apache.dolphinscheduler.common.utils.*;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 import org.apache.dolphinscheduler.common.utils.LoggerUtils;
 import org.apache.dolphinscheduler.common.utils.NetUtils;
 import org.apache.dolphinscheduler.dao.entity.TaskInstance;
 import org.apache.dolphinscheduler.server.utils.DependentExecute;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
-import static org.apache.dolphinscheduler.common.Constants.DEPENDENT_SPLIT;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DependentTaskExecThread extends MasterBaseTaskExecThread {
 
@@ -113,9 +118,11 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
      */
     private void updateTaskState() {
         ExecutionStatus status;
-        if(this.cancel){
+        if(this.cancel) {
             status = ExecutionStatus.KILL;
-        }else{
+        } else if (this.fakeRun) {
+            status = ExecutionStatus.SUCCESS;
+        } else {
             DependResult result = getTaskDependResult();
             status = (result == DependResult.SUCCESS) ? ExecutionStatus.SUCCESS : ExecutionStatus.FAILURE;
         }
@@ -129,6 +136,13 @@ public class DependentTaskExecThread extends MasterBaseTaskExecThread {
      */
     private Boolean waitTaskQuit() {
         logger.info("wait depend task : {} complete", this.taskInstance.getName());
+
+        if (this.fakeRun) {
+            logger.info("dependent task :{} id:{}, as fake-run",
+                    this.taskInstance.getName(), taskInstance.getId());
+            return true;
+        }
+
         if (taskInstance.getState().typeIsFinished()) {
             logger.info("task {} already complete. task state:{}",
                     this.taskInstance.getName(),
