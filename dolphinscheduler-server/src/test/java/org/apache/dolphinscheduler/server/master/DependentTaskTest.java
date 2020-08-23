@@ -113,7 +113,7 @@ public class DependentTaskTest {
                 .thenAnswer(i -> taskInstance);
     }
 
-    private void testBasicInit() {
+    private TaskNode testBasicInit() {
         TaskNode taskNode = getDependantTaskNode();
         DependentTaskModel dependentTaskModel = new DependentTaskModel();
         dependentTaskModel.setRelation(DependentRelation.AND);
@@ -128,12 +128,16 @@ public class DependentTaskTest {
         // dependence: AND(AND(2-A-day-today))
         taskNode.setDependence(JSONUtils.toJsonString(dependentParameters));
 
-        setupTaskInstance(taskNode);
+        return taskNode;
+    }
+
+    private void testBasicInitAndSetup() {
+        setupTaskInstance(testBasicInit());
     }
 
     @Test
     public void testBasicSuccess() throws Exception {
-        testBasicInit();
+        testBasicInitAndSetup();
         ProcessInstance dependentProcessInstance =
                 getProcessInstanceForFindLastRunningProcess(200, 2, ExecutionStatus.FAILURE);
         // for DependentExecute.findLastProcessInterval
@@ -156,7 +160,7 @@ public class DependentTaskTest {
 
     @Test
     public void testBasicFailure() throws Exception {
-        testBasicInit();
+        testBasicInitAndSetup();
         ProcessInstance dependentProcessInstance =
                 getProcessInstanceForFindLastRunningProcess(200, 2, ExecutionStatus.SUCCESS);
         // for DependentExecute.findLastProcessInterval
@@ -334,6 +338,17 @@ public class DependentTaskTest {
 
         taskExecThread.call();
         Assert.assertEquals(ExecutionStatus.KILL, taskExecThread.getTaskInstance().getState());
+    }
+
+    @Test
+    public void testFakeRun() throws Exception {
+        TaskNode taskNode = testBasicInit();
+        taskNode.setRunFlag(Constants.FLOWNODE_RUN_FLAG_FAKERUN);
+        setupTaskInstance(taskNode);
+
+        DependentTaskExecThread taskExecThread = new DependentTaskExecThread(taskInstance);
+        taskExecThread.call();
+        Assert.assertEquals(ExecutionStatus.SUCCESS, taskExecThread.getTaskInstance().getState());
     }
 
     private ProcessDefinition getProcessDefinition(int processDefinitionId) {

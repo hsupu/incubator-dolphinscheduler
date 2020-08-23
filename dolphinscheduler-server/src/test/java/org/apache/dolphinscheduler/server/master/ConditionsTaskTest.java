@@ -41,17 +41,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-@RunWith(MockitoJUnitRunner.Silent.class)
+@RunWith(MockitoJUnitRunner.class)
 public class ConditionsTaskTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(DependentTaskTest.class);
 
     /**
      * TaskNode.runFlag : task can be run normally
@@ -89,15 +84,16 @@ public class ConditionsTaskTest {
         Mockito.when(processService
                 .updateTaskInstance(Mockito.any()))
                 .thenReturn(true);
+
+        // for MasterBaseTaskExecThread.submit
+        Mockito.when(processService
+                .submitTask(Mockito.any()))
+                .thenAnswer(t -> t.getArgument(0));
     }
 
     private TaskInstance testBasicInit(ExecutionStatus expectResult) {
         TaskInstance taskInstance = getTaskInstance(getTaskNode(), processInstance);
 
-        // for MasterBaseTaskExecThread.submit
-        Mockito.when(processService
-                .submitTask(taskInstance))
-                .thenReturn(taskInstance);
         // for MasterBaseTaskExecThread.call
         Mockito.when(processService
                 .findTaskInstanceById(taskInstance.getId()))
@@ -136,37 +132,14 @@ public class ConditionsTaskTest {
         taskNode.setRunFlag(Constants.FLOWNODE_RUN_FLAG_FAKERUN);
         TaskInstance taskInstance = getTaskInstance(taskNode, processInstance);
 
-        // for MasterBaseTaskExecThread.submit
-        Mockito.when(processService
-                .submitTask(taskInstance))
-                .thenReturn(taskInstance);
         // for MasterBaseTaskExecThread.call
         Mockito.when(processService
                 .findTaskInstanceById(taskInstance.getId()))
                 .thenReturn(taskInstance);
 
-        List<TaskInstance> pres1 = Stream.of(
-                getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.SUCCESS)
-        ).collect(Collectors.toList());
-
-        List<TaskInstance> pres2 = Stream.of(
-                getTaskInstanceForValidTaskList(1001, "1", ExecutionStatus.FAILURE)
-        ).collect(Collectors.toList());
-
-        // for ConditionsTaskExecThread.waitTaskQuit
-        //noinspection unchecked
-        Mockito.when(processService
-                .findValidTaskListByProcessId(processInstance.getId()))
-                .thenReturn(pres1, pres2);
-
-        ConditionsTaskExecThread conditions;
-        conditions = new ConditionsTaskExecThread(taskInstance);
-        conditions.call();
-        Assert.assertEquals(ExecutionStatus.SUCCESS, conditions.getTaskInstance().getState());
-
-        conditions = new ConditionsTaskExecThread(taskInstance);
-        conditions.call();
-        Assert.assertEquals(ExecutionStatus.SUCCESS, conditions.getTaskInstance().getState());
+        ConditionsTaskExecThread taskExecThread = new ConditionsTaskExecThread(taskInstance);
+        taskExecThread.call();
+        Assert.assertEquals(ExecutionStatus.SUCCESS, taskExecThread.getTaskInstance().getState());
     }
 
     private TaskNode getTaskNode() {
